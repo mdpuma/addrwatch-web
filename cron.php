@@ -4,9 +4,6 @@
 
 include 'config.php';
 
-$sql = new PDO("mysql:host=".$DB['host'].";port=3306;dbname=".$DB['name'].";charset=UTF8;", $DB['user'], $DB['pass'], array(PDO::ATTR_PERSISTENT=>true));
-$sql->query("SET NAMES utf8;");
-
 function is_changed_pair($ip_address, $mac_address, $vlan_tag) {
 	global $sql, $DB;
 	$sth = $sql->prepare('SELECT * FROM known_pairs WHERE ip_address = :ip_address AND vlan_tag = :vlan_tag');
@@ -83,7 +80,7 @@ foreach($result as $row) {
 	if(in_array($row['mac_address'], $CFG['mac_ignore'])) continue;
 	if(isset($checked_ips[$row['ip_address']])) continue;
 	if(is_changed_pair($row['ip_address'], $row['mac_address'], $row['vlan_tag'])) {
-		$sth = $sql->prepare('UPDATE known_pairs SET mac_address = :mac_address WHERE vlan_tag = :vlan_tag AND ip_address = :ip_address');
+		$sth = $sql->prepare('UPDATE known_pairs SET mac_address = :mac_address, changes = changes+1 WHERE vlan_tag = :vlan_tag AND ip_address = :ip_address');
 		$sth->bindvalue(':ip_address', $row['ip_address'], PDO::PARAM_STR);
 		$sth->bindvalue(':mac_address', $row['mac_address'], PDO::PARAM_STR);
 		$sth->bindvalue(':vlan_tag', $row['vlan_tag'], PDO::PARAM_STR);

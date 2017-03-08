@@ -2,12 +2,44 @@
 
 include 'config.php';
 
-$sql = new PDO("mysql:host=".$DB['host'].";port=3306;dbname=".$DB['name'].";charset=UTF8;", $DB['user'], $DB['pass'], array(PDO::ATTR_PERSISTENT=>true));
-$sql->query("SET NAMES utf8;");
-
 //convert mac_address from cisco style mac address
 if(preg_match("/^[a-f0-9.]+$/", $_GET['mac_address'])) {
 	$_GET['mac_address'] = implode(":", str_split(str_replace(".", "", $_GET['mac_address']), 2));
+}
+
+function get_network_24($ip_address) {
+	$i = explode('.', $ip_address);
+	$i[3]=0;
+	return implode('.', $i).'/24';
+}
+
+function sort_subnet($a, $b) {
+	if ($a['ip_address_bin'] == $b['ip_address_bin']) return 0;
+	return ($a['ip_address_bin'] < $b['ip_address_bin']) ? -1 : 1;
+}
+
+if(!empty($_GET['mac_address']) || !empty($_GET['ip_address'])) {
+	$sth = $sql->prepare("SELECT * FROM ".$DB['table']." WHERE mac_address LIKE :mac_address AND ip_address LIKE :ip_address ORDER by tstamp DESC");
+	$sth->bindvalue(':mac_address', '%'.$_GET['mac_address'].'%', PDO::PARAM_STR);
+	$sth->bindvalue(':ip_address', '%'.$_GET['ip_address'].'%', PDO::PARAM_STR);
+	$sth->execute();
+	$result = $sth->fetchAll();
+} elseif(!empty($_GET['subnet'])) {
+	$subnet1 = explode('.', $_GET['subnet']);
+	unset($subnet1[3]);
+	$subnet = implode('.', $subnet1);
+	
+	$sth = $sql->prepare("SELECT * FROM known_pairs WHERE ip_address LIKE :ip_address ORDER by ip_address ASC");
+	$sth->bindvalue(':ip_address', $subnet.'%', PDO::PARAM_STR);
+	$sth->execute();
+	$result = $sth->fetchAll();
+	foreach($result as $i => $j) $result[$i]['ip_address_bin'] = ip2long($j['ip_address']);
+	usort($result, 'sort_subnet');
+
+	
+	$echo_type = 'subnet';
+} else {
+	$result = $sql->query("SELECT * FROM ".$DB['table']." ORDER by tstamp DESC LIMIT 100");
 }
 
 ?>
@@ -48,27 +80,37 @@ if(preg_match("/^[a-f0-9.]+$/", $_GET['mac_address'])) {
 	</div>
 	<div class="row" style="padding-top: 30px;">
 	<table class="table table-bordered table-condensed table-hover">
+	<?php if($echo_type == 'subnet') { ?>
 	  <thead>
-	    <th>Timestamp</th>
-	    <th>Interface</th>
-	    <th>Vlan</th>
+	    <th>Last change</th>
 	    <th>IP address</th>
 	    <th>Mac address</th>
+	    <th>Vlan</th>
+	    <th>Changes</th>
+	  </thead>
+	<?php } else { ?>
+	  <thead>
+	    <th>Timestamp</th>
+	    <th>IP address</th>
+	    <th>Mac address</th>
+	    <th>Interface</th>
+	    <th>Vlan</th>
 	    <th>Type</th>
 	  </thead>
+	<?php } ?>
 	  <tbody>
 <?php
-if(!empty($_GET['mac_address']) || !empty($_GET['ip_address'])) {
-	$sth = $sql->prepare("SELECT * FROM ".$DB['table']." WHERE mac_address LIKE :mac_address AND ip_address LIKE :ip_address ORDER by tstamp DESC");
-	$sth->bindvalue(':mac_address', '%'.$_GET['mac_address'].'%', PDO::PARAM_STR);
-	$sth->bindvalue(':ip_address', '%'.$_GET['ip_address'].'%', PDO::PARAM_STR);
-	$sth->execute();
-	$result = $sth->fetchAll();
+
+if($echo_type == 'subnet') {
+	foreach($result as $row) {
+		$subnet = get_network_24($row['ip_address']);
+		echo "<tr><td>".$row['last_change']."</td><td>".$row['ip_address']."</td><td>".$row['mac_address']."</td><td>".$row['vlan_tag']."</td><td>".$row['changes']."</td></tr>";
+	}
 } else {
-	$result = $sql->query("SELECT * FROM ".$DB['table']." ORDER by tstamp DESC LIMIT 100");
-}
-foreach($result as $row) {
-	echo "<tr><td>".$row['tstamp']."</td><td>".$row['interface']."</td><td>".$row['vlan_tag']."</td><td>".$row['ip_address']."</td><td>".$row['mac_address']."</td><td>".$row['origin']."</td></tr>";
+	foreach($result as $row) {
+		$subnet = get_network_24($row['ip_address']);
+		echo "<tr><td>".$row['tstamp']."</td><td>".$row['ip_address']." <a href='?subnet=".$subnet."'>/24</a></td><td>".$row['mac_address']."</td><td>".$row['interface']."</td><td>".$row['vlan_tag']."</td><td>".$row['origin']."</td></tr>";
+	}
 }
 	  ?>
 	   </tbody>
