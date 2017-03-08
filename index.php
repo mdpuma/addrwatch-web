@@ -6,7 +6,9 @@ $sql = new PDO("mysql:host=".$DB['host'].";port=3306;dbname=".$DB['name'].";char
 $sql->query("SET NAMES utf8;");
 
 //convert mac_address from cisco style mac address
-$_GET['mac_address'] = implode(":", str_split(str_replace(".", "", $_GET['mac_address']), 2));
+if(preg_match("/^[a-f0-9.]+$/", $_GET['mac_address'])) {
+	$_GET['mac_address'] = implode(":", str_split(str_replace(".", "", $_GET['mac_address']), 2));
+}
 
 ?>
 
