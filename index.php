@@ -5,6 +5,9 @@ include 'config.php';
 $sql = new PDO("mysql:host=".$DB['host'].";port=3306;dbname=".$DB['name'].";charset=UTF8;", $DB['user'], $DB['pass'], array(PDO::ATTR_PERSISTENT=>true));
 $sql->query("SET NAMES utf8;");
 
+//convert mac_address from cisco style mac address
+$_GET['mac_address'] = implode(":", str_split(str_replace(".", "", $_GET['mac_address']), 2));
+
 ?>
 
 <!DOCTYPE html>
