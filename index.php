@@ -1,16 +1,9 @@
 <?php
 
-$DB['user'] = 'addrwatch';
-$DB['pass'] = 'addrwatch';
-$DB['name'] = 'addrwatch';
-$DB['table'] = 'addrwatch';
+include 'config.php';
 
-$sql = new PDO("mysql:host=127.0.0.1;port=3306;dbname=".$DB['name'].";charset=UTF8;", $DB['user'], $DB['pass'], array(PDO::ATTR_PERSISTENT=>true));
+$sql = new PDO("mysql:host=".$DB['host'].";port=3306;dbname=".$DB['name'].";charset=UTF8;", $DB['user'], $DB['pass'], array(PDO::ATTR_PERSISTENT=>true));
 $sql->query("SET NAMES utf8;");
-
-ini_set('display_errors', 'On');
-ini_set('short_open_tag', 'On');
-error_reporting(-1);
 
 ?>
 
