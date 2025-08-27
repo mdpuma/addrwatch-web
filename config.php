@@ -6,7 +6,7 @@ $DB['pass'] = 'addrwatch';
 $DB['name'] = 'addrwatch';
 $DB['table'] = 'addrwatch';
 
-$CFG['mac_ignore'] = array('00:15:2c:18:ac:00');
+$CFG['mac_ignore'] = array('5c:71:0d:e3:a4:3f');
 $CFG['mailto'] = 'admin@iphost.md';
 
 ini_set('display_errors', 'On');
